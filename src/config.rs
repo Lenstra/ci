@@ -1,14 +1,22 @@
-use crate::runner::sql;
+use crate::runner::{go, python, rust, shell, sql};
 
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     pub sql: Option<sql::SQL>,
+    pub go: Option<go::Go>,
+    pub python: Option<python::Python>,
+    pub rust: Option<rust::Rust>,
+    pub shell: Option<shell::Shell>,
 }
 
 impl Config {
-    fn get_config_path(path: Option<String>) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    fn get_config_path(
+        path: Option<String>,
+    ) -> Result<std::path::PathBuf, Box<dyn Error + Send + Sync>> {
         if let Some(path) = path {
             return Ok(std::path::PathBuf::from(path));
         }
@@ -31,10 +39,13 @@ impl Config {
         }
     }
 
-    pub fn from_file(path: Option<String>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_file(
+        path: Option<String>,
+    ) -> Result<(std::path::PathBuf, Self), Box<dyn Error + Send + Sync>> {
         let path = Self::get_config_path(path)?;
-        let contents = std::fs::read_to_string(path)?;
+        let dir = path.parent().unwrap().to_path_buf();
+        let contents = std::fs::read_to_string(&path)?;
         let config: Config = hcl::from_str(&contents)?;
-        Ok(config)
+        Ok((dir, config))
     }
 }

@@ -4,21 +4,26 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SQL {}
+pub struct Go {}
 
-impl crate::runner::Runner for SQL {
+impl crate::runner::Runner for Go {
     fn sniff(&self) -> Result<Vec<PathBuf>, Error> {
-        Ok(vec![PathBuf::from(".")])
+        crate::runner::path::dir(crate::runner::path::find(&["go.mod"]))
     }
 
     fn format(&self, path: &PathBuf) -> Result<Vec<crate::runner::tasks::TaskGroup>, Error> {
-        Ok(vec![crate::runner::tasks::TaskGroup::single(
+        Ok(vec![crate::runner::tasks::TaskGroup::new(vec![
             crate::runner::tasks::Task::new(
-                "sqlfmt",
-                vec![".".to_string()],
+                "go",
+                vec!["mod".to_string(), "tidy".to_string()],
                 path.to_str().unwrap(),
             ),
-        )])
+            crate::runner::tasks::Task::new(
+                "go",
+                vec!["fmt".to_string(), "./...".to_string()],
+                path.to_str().unwrap(),
+            ),
+        ])])
     }
 
     fn lint(&self, _path: &PathBuf) -> Result<Vec<super::tasks::TaskGroup>, Error> {
